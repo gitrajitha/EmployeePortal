@@ -6,17 +6,21 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Web;
 using System.Web.Http;
 
 namespace WebAPIA.Controllers
 {
-    public class DepartmentController : ApiController
+    public class EmployeeController : ApiController
     {
         public HttpResponseMessage Get()
         {
             string query = @"
-                             select DepartmentId, DepartmentName from
-                            dbo.Department
+                             select EmployeeId, EmployeeName, Department,
+                            convert(varchar(10),DateofJoining,120) as DateOfJoining,
+                            PhotoFilename
+                            from
+                            dbo.Employee
                             ";
             DataTable table = new DataTable();
             using (var con = new SqlConnection(ConfigurationManager.
@@ -29,13 +33,18 @@ namespace WebAPIA.Controllers
             }
             return Request.CreateResponse(HttpStatusCode.OK, table);
         }
-        public string Post(Department dep)
+        public string Post(Employee emp)
         {
             try
             {
                 string query = @"
-                                insert into dbo.Department values
-                                ('"+dep.DepartmentName+ @"')
+                                insert into dbo.Employee values
+                                (
+                                '" + emp.EmployeeName + @"',
+                                 '" + emp.Department + @"',
+                                  '" + emp.DateofJoining + @"',
+                                 '" + emp.PhotoFileName + @"'
+                                )
                                ";
                 DataTable table = new DataTable();
                 using (var con = new SqlConnection(ConfigurationManager.
@@ -52,18 +61,21 @@ namespace WebAPIA.Controllers
             catch (Exception)
             {
 
-               return "Failed to add!!";
+                return "Failed to add!!";
             }
         }
 
-        public string Put(Department dep)
+        public string Put(Employee emp)
         {
             try
             {
                 string query = @"
-                                update dbo.Department set DepartmentName=
-                                '" + dep.DepartmentName + @"' 
-                                where DepartmentId = "+dep.DepartmentId+@"
+                                update dbo.Employee set 
+                                EmployeeName= '" + emp.EmployeeName + @"'
+                                ,Department= '" + emp.Department + @"'
+                                ,DateofJoining= '" + emp.DateofJoining + @"'
+                                ,PhotoFileName= '" + emp.PhotoFileName + @"' 
+                                where EmployeeId = " + emp.EmployeeId + @"
                                ";
                 DataTable table = new DataTable();
                 using (var con = new SqlConnection(ConfigurationManager.
@@ -77,10 +89,11 @@ namespace WebAPIA.Controllers
 
                 return "updated successfully";
             }
-            catch (Exception)
+            catch (Exception )
             {
 
-                return "Failed to update!!";
+                 return "Failed to update!!";
+                
             }
         }
 
@@ -89,8 +102,8 @@ namespace WebAPIA.Controllers
             try
             {
                 string query = @"
-                                delete from dbo.Department 
-                                where DepartmentId = " + id + @"
+                                delete from dbo.Employee 
+                                where EmployeeId = " + id + @"
                                ";
                 DataTable table = new DataTable();
                 using (var con = new SqlConnection(ConfigurationManager.
@@ -109,6 +122,49 @@ namespace WebAPIA.Controllers
 
                 return "Failed to delete!!";
             }
+
         }
+
+        [Route("api/Employee/GetAllDepartmentNames")]
+        [HttpGet]
+            public HttpResponseMessage GetAllDepartmentNames()
+        {
+
+            string query = @"
+                             select DepartmentName from dbo.Department
+                            ";
+            DataTable table = new DataTable();
+            using (var con = new SqlConnection(ConfigurationManager.
+                ConnectionStrings["EmployeeDBEntities"].ConnectionString))
+            using (var cmd = new SqlCommand(query, con))
+            using (var da = new SqlDataAdapter(cmd))
+            {
+                cmd.CommandType = CommandType.Text;
+                da.Fill(table);
+            }
+            return Request.CreateResponse(HttpStatusCode.OK, table);
+        }
+        [Route("api/Employee/saveFile")]
+        public string SaveFile()
+        {
+            try
+            {
+                var httpRequest = HttpContext.Current.Request;
+                var postedFile = httpRequest.Files[0];
+                string filename = postedFile.FileName;
+                var physicalPath = HttpContext.Current.Server.MapPath("~/Photos/" + filename);
+
+                postedFile.SaveAs(physicalPath);
+                return filename;
+            }
+            catch (Exception)
+            {
+
+                return "annonymous.png";
+            }
+        }
+
     }
+
+    
 }
